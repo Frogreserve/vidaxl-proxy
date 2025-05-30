@@ -2,37 +2,30 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
-$email = 'lichterae@gmail.com';
-$token = '6bf9794d-199d-4fa3-926a-3f94ac9620be';
-$auth = base64_encode("$email:$token");
+// CSV-Feed-URL (Deutsch, Schweiz)
+$csvUrl = "http://transport.productsup.io/e9ba40e8e3597b1588a0/channel/188050/vidaXL_ch_de_dropshipping.csv";
 
-$url = 'https://b2b.vidaxl.com/api_customer/products';
-
-$ch = curl_init($url);
-curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-curl_setopt($ch, CURLOPT_HTTPHEADER, [
-    "Authorization: Basic $auth",
-    "Content-Type: application/json"
-]);
-
-$response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-if ($httpCode == 200) {
-    $products = json_decode($response, true);
-
-    // Nur wichtige Felder (inkl. Bildpfad)
-    $filtered = array_map(function ($p) {
-        return [
-            'name' => $p['name'],
-            'price' => $p['price'],
-            'currency' => $p['currency'],
-            'image' => $p['main_image_url'] ?? null  // das ist wichtig!
-        ];
-    }, array_slice($products['data'], 0, 12));
-
-    echo json_encode($filtered);
-} else {
-    echo json_encode(["error" => "Fehler $httpCode"]);
+// CSV herunterladen
+$csv = file_get_contents($csvUrl);
+if (!$csv) {
+    echo json_encode(["error" => "CSV konnte nicht geladen werden."]);
+    exit;
 }
+
+// CSV in ein Array umwandeln
+$rows = array_map("str_getcsv", explode("\n", $csv));
+$header = array_map("trim", $rows[0]);
+$data = [];
+
+foreach (array_slice($rows, 1, 20) as $row) {
+    if (count($row) < count($header)) continue;
+    $item = array_combine($header, $row);
+    $data[] = [
+        "name" => $item["title"],
+        "price" => $item["price"],
+        "currency" => "CHF",
+        "image" => $item["image_link"]
+    ];
+}
+
+echo json_encode($data);
