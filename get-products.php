@@ -2,12 +2,10 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
-// vidaXL Zugangsdaten
 $email = 'lichterae@gmail.com';
 $token = '6bf9794d-199d-4fa3-926a-3f94ac9620be';
 $auth = base64_encode("$email:$token");
 
-// API-Endpunkt
 $url = 'https://b2b.vidaxl.com/api_customer/products';
 
 $ch = curl_init($url);
@@ -22,7 +20,19 @@ $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
 if ($httpCode == 200) {
-    echo $response;
+    $products = json_decode($response, true);
+
+    // Nur wichtige Felder (inkl. Bildpfad)
+    $filtered = array_map(function ($p) {
+        return [
+            'name' => $p['name'],
+            'price' => $p['price'],
+            'currency' => $p['currency'],
+            'image' => $p['main_image_url'] ?? null  // das ist wichtig!
+        ];
+    }, array_slice($products['data'], 0, 12));
+
+    echo json_encode($filtered);
 } else {
     echo json_encode(["error" => "Fehler $httpCode"]);
 }
