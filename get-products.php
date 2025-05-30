@@ -2,41 +2,31 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
-// Zugangsdaten (Token bitte später ersetzen)
+// Zugangsdaten (deine echten Daten einfügen)
 $email = 'lichterae@gmail.com';
-$token = '6bf9794d-199d-4fa3-926a-3f94ac9620be'; // <<< Ersetze bei Bedarf durch deinen echten
+$token = '6bf9794d-199d-4fa3-926a-3f94ac9620be';
 $auth = base64_encode("$email:$token");
 
-// API-URL (auf 30 Produkte beschränkt)
-$page = 1;
-$limit = 30;
-$url = "https://b2b.vidaxl.com/api_customer/products?page=$page&limit=$limit";
+// API-Endpunkt
+$url = 'https://b2b.vidaxl.com/api_customer/products?limit=30';
 
-// cURL-Request konfigurieren
-$ch = curl_init();
-curl_setopt_array($ch, [
-    CURLOPT_URL => $url,
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HTTPHEADER => [
-        "Authorization: Basic $auth",
-        "Accept: application/json"
-    ]
+// cURL Setup
+$ch = curl_init($url);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_HTTPHEADER, [
+    "Authorization: Basic $auth",
+    "Accept: application/json"
 ]);
 
 $response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 curl_close($ch);
 
-// Fehlerbehandlung
-if ($httpCode !== 200 || !$response) {
-    echo json_encode([
-        'error' => 'Fehler beim Abrufen der Produktdaten.',
-        'http_code' => $httpCode
-    ]);
+// Prüfen ob API Antwort gültig ist
+$data = json_decode($response, true);
+if (!is_array($data)) {
+    echo json_encode([]);
     exit;
 }
-
-$data = json_decode($response, true);
 
 // Produkte extrahieren
 $products = array_map(function ($item) {
@@ -45,9 +35,8 @@ $products = array_map(function ($item) {
         'name' => $item['name'] ?? '',
         'price' => $item['price'] ?? '',
         'currency' => $item['currency'] ?? '',
-        'image_url' => $item['main_image'] ?? 'https://via.placeholder.com/150?text=Kein+Bild'
+        'image_url' => $item['main_image'] ?? $item['images'][0] ?? "https://via.placeholder.com/150?text=Kein+Bild"
     ];
-}, $data);
+}, array_slice($data, 0, 30));
 
-// Ausgabe
 echo json_encode($products);
