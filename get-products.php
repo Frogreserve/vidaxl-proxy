@@ -7,10 +7,9 @@ $email = 'lichterae@gmail.com';
 $token = '6bf9794d-199d-4fa3-926a-3f94ac9620be';
 $auth = base64_encode("$email:$token");
 
-// API-Endpunkt
+// API-Endpoint
 $url = 'https://b2b.vidaxl.com/api_customer/products?limit=30';
 
-// cURL
 $ch = curl_init($url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPHEADER, [
@@ -23,25 +22,15 @@ curl_close($ch);
 
 $data = json_decode($response, true);
 
-// Fallback bei Fehler
-if (!is_array($data)) {
-    echo json_encode([]);
-    exit;
-}
-
-// Nur Produkte mit Namen und Bild
-$products = array_filter($data, function ($item) {
-    return !empty($item['name']) && (!empty($item['main_image']) || !empty($item['images'][0]));
-});
-
-$cleaned = array_map(function ($item) {
+// Nur relevante Daten extrahieren
+$products = array_map(function ($item) {
     return [
-        'id' => $item['id'],
-        'name' => $item['name'],
-        'price' => $item['price'],
-        'currency' => $item['currency'],
-        'image_url' => $item['main_image'] ?? $item['images'][0] ?? null
+        'id' => $item['id'] ?? '',
+        'name' => $item['name'] ?? '',
+        'price' => $item['price'] ?? '',
+        'currency' => $item['currency'] ?? '',
+        'image_url' => $item['main_image'] ?? ($item['images'][0] ?? null)
     ];
-}, array_slice($products, 0, 30));
+}, array_slice($data, 0, 30));
 
-echo json_encode($cleaned);
+echo json_encode($products);
