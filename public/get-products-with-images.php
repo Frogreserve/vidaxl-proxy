@@ -2,6 +2,7 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
+// Zugangsdaten
 $email = 'lichterae@gmail.com';
 $token = '6bf9794d-199d-4fa3-926a-3f94ac9620be';
 $auth = base64_encode("$email:$token");
@@ -23,42 +24,25 @@ if (!is_array($apiData)) {
     exit;
 }
 
-// 2. CSV-Feed laden (für Bild-Backup)
-$csvUrl = 'http://transport.productsup.io/e9ba40e8e3597b1588a0/channel/188050/vidaXL_ch_de_dropshipping.csv';
-$csvData = [];
-if (($handle = fopen($csvUrl, 'r')) !== false) {
-    $headers = fgetcsv($handle, 0, ',');
-    while (($row = fgetcsv($handle, 0, ',')) !== false) {
-        $entry = array_combine($headers, $row);
-        if (isset($entry['id']) && isset($entry['Image url'])) {
-            $csvData[trim($entry['id'])] = $entry['Image url'];
-        }
-    }
-    fclose($handle);
-}
-
-// 3. Nur Lampenprodukte herausfiltern
+// 2. Nur Lampenprodukte filtern
 $lampProducts = array_filter($apiData, function ($item) {
     $category = strtolower($item['category_path'] ?? '');
     return str_contains($category, 'lamp') ||
            str_contains($category, 'light') ||
-           str_contains($category, 'beleuchtung') ||
-           str_contains($category, 'leuchte');
+           str_contains($category, 'leuchte') ||
+           str_contains($category, 'beleuchtung');
 });
 
-// 4. Produkte zusammenstellen
-$products = array_map(function ($item) use ($csvData) {
-    $id = $item['id'] ?? '';
-    $fallbackImage = $csvData[$id] ?? null;
-
+// 3. Produkte umwandeln (Platzhalterbild wenn leer)
+$products = array_map(function ($item) {
     return [
-        'id' => $id,
+        'id' => $item['id'] ?? '',
         'name' => $item['name'] ?? '',
         'price' => $item['price'] ?? '',
         'currency' => $item['currency'] ?? '',
-        'image_url' => $item['main_image'] ?? $fallbackImage
+        'image_url' => $item['main_image'] ?: 'https://via.placeholder.com/300x300?text=Kein+Bild'
     ];
 }, array_slice($lampProducts, 0, 30));
 
-// 5. Ausgabe
+// 4. Ausgabe als JSON
 echo json_encode($products);
