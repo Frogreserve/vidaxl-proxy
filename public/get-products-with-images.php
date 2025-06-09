@@ -2,12 +2,11 @@
 header("Access-Control-Allow-Origin: *");
 header("Content-Type: application/json");
 
-// API-Zugangsdaten
 $email = 'lichterae@gmail.com';
 $token = '6bf9794d-199d-4fa3-926a-3f94ac9620be';
 $auth = base64_encode("$email:$token");
 
-// 1. Produkte aus der API abrufen
+// 1. API-Daten abrufen
 $apiUrl = 'https://b2b.vidaxl.com/api_customer/products?limit=100';
 $ch = curl_init($apiUrl);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -38,7 +37,7 @@ if (($handle = fopen($csvUrl, 'r')) !== false) {
     fclose($handle);
 }
 
-// 3. Lampen-Produkte filtern
+// 3. Nur Lampenprodukte herausfiltern
 $lampProducts = array_filter($apiData, function ($item) {
     $category = strtolower($item['category_path'] ?? '');
     return str_contains($category, 'lamp') ||
@@ -47,7 +46,7 @@ $lampProducts = array_filter($apiData, function ($item) {
            str_contains($category, 'leuchte');
 });
 
-// 4. Produkte formatieren mit Bild-Backup
+// 4. Produkte zusammenstellen
 $products = array_map(function ($item) use ($csvData) {
     $id = $item['id'] ?? '';
     $fallbackImage = $csvData[$id] ?? null;
@@ -61,5 +60,5 @@ $products = array_map(function ($item) use ($csvData) {
     ];
 }, array_slice($lampProducts, 0, 30));
 
-// 5. JSON-Ausgabe
+// 5. Ausgabe
 echo json_encode($products);
