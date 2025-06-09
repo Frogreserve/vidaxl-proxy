@@ -1,1 +1,6 @@
-
+services:
+  - type: web
+    name: vidaxl-proxy
+    env: php
+    plan: free
+    rootDir: public
